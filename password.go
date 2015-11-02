@@ -4,7 +4,37 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh/terminal"
 	"os"
+	"os/exec"
+	"strings"
+	"github.com/mgutz/str"
 )
+
+func hasAskPass() bool {
+	return len(getAskPassEnv()) > 0
+}
+
+func getAskPassEnv() string {
+	return os.Getenv("GOCRYPTFS_ASKPASS")
+}
+
+func getAskPassParts() []string {
+	askpass := getAskPassEnv()
+	return str.ToArgv(askpass)
+}
+
+func readAskPass() string {
+	fmt.Printf("Executing askpass program.\n")
+	parts := getAskPassParts()
+	exeFile := parts[0]
+	parts = parts[1:len(parts)]
+	cmd := exec.Command(exeFile, parts...)
+	out, err := cmd.Output()
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	return strings.Trim(string(out), "\r\n")
+}
 
 func readPasswordTwice() string {
 	fmt.Printf("Password: ")

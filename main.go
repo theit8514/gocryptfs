@@ -155,13 +155,26 @@ func main() {
 			fmt.Printf("Please run \"%s --init %s\" first\n", os.Args[0], flag.Arg(0))
 			os.Exit(ERREXIT_LOADCONF)
 		}
-		if passwd == true {
-			fmt.Printf("Old password: ")
+		hasAskPass := hasAskPass()
+		if passwd == false && hasAskPass == true {
+			currentPassword = readAskPass()
+			if currentPassword == "" {
+				fmt.Fprintf(os.Stderr, "GOCRYPTFS_ASKPASS returned no value or failed to execute.\n")
+				os.Exit(ERREXIT_PASSWORD)
+			}
 		} else {
-			fmt.Printf("Password: ")
+			if hasAskPass == true {
+				fmt.Fprintf(os.Stderr, "Warn: GOCRYPTFS_ASKPASS ignored while changing password.")
+			}
+			if passwd == true {
+				fmt.Printf("Old password: ")
+			} else {
+				fmt.Printf("Password: ")
+			}
+			currentPassword = readPassword()
+			fmt.Printf("\n")
 		}
-		currentPassword = readPassword()
-		fmt.Printf("\nDecrypting master key... ")
+		fmt.Printf("Decrypting master key... ")
 		cryptfs.Warn.Disable() // Silence DecryptBlock() error messages on incorrect password
 		key, cf, err = cryptfs.LoadConfFile(cfname, currentPassword)
 		cryptfs.Warn.Enable()
